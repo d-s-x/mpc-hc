@@ -40,7 +40,7 @@
     #define localize = "true"
   #endif
 #endif
-#define sse_required
+#define sse2_required
 
 
 ; From now on you shouldn't need to change anything
