@@ -40,10 +40,6 @@ msgctxt "CustomMessages_msg_SetupIsRunningWarning"
 msgid "MPC-HC setup is already running!"
 msgstr "已在執行 MPC-HC 安裝程式！"
 
-msgctxt "CustomMessages_msg_simd_sse"
-msgid "This build of MPC-HC requires a CPU with SSE extension support.\n\nYour CPU does not have those capabilities."
-msgstr "此版的 MPC-HC 需要有支援 SSE 延伸指令集的 CPU。\n\n您的 CPU 並未相容這些功能。"
-
 msgctxt "CustomMessages_msg_simd_sse2"
 msgid "This build of MPC-HC requires a CPU with SSE2 extension support.\n\nYour CPU does not have those capabilities."
 msgstr "此版的 MPC-HC 須要有支援 SSE2 延伸指令集的 CPU。\n\n您的 CPU 並未相容這些功能。"

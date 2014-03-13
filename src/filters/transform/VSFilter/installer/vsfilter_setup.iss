@@ -25,7 +25,7 @@
 #endif
 
 ; If you want to compile the 64-bit version define "x64Build" (uncomment the define below or use build.bat)
-#define sse_required
+#define sse2_required
 ;#define x64Build
 
 
@@ -132,9 +132,7 @@ SetupWindowTitle=Setup - {#app_name}
 [CustomMessages]
 en.msg_DeleteSettings=Do you also want to delete {#app_name}'s settings?%n%nIf you plan on installing {#app_name} again then you do not have to delete them.
 en.msg_SetupIsRunningWarning={#app_name} setup is already running!
-#if defined(sse_required)
-en.msg_simd_sse=This build of {#app_name} requires a CPU with SSE extension support.%n%nYour CPU does not have those capabilities.
-#elif defined(sse2_required)
+#if defined(sse2_required)
 en.msg_simd_sse2=This build of {#app_name} requires a CPU with SSE2 extension support.%n%nYour CPU does not have those capabilities.
 #endif
 en.tsk_ResetSettings=Reset {#app_name}'s settings
@@ -167,7 +165,7 @@ Filename: {sys}\rundll32.exe; Parameters: VSFilter.dll,DirectVobSub; Description
 
 
 [Code]
-#if defined(sse_required) || defined(sse2_required)
+#if defined(sse2_required)
 function IsProcessorFeaturePresent(Feature: Integer): Boolean;
 external 'IsProcessorFeaturePresent@kernel32.dll stdcall';
 #endif
@@ -184,14 +182,7 @@ begin
 end;
 
 
-#if defined(sse_required)
-function Is_SSE_Supported(): Boolean;
-begin
-  // PF_XMMI_INSTRUCTIONS_AVAILABLE
-  Result := IsProcessorFeaturePresent(6);
-end;
-
-#elif defined(sse2_required)
+#if defined(sse2_required)
 
 function Is_SSE2_Supported(): Boolean;
 begin
@@ -266,11 +257,6 @@ begin
 #if defined(sse2_required)
     if not Is_SSE2_Supported() then begin
       SuppressibleMsgBox(CustomMessage('msg_simd_sse2'), mbCriticalError, MB_OK, MB_OK);
-      Result := False;
-    end;
-#elif defined(sse_required)
-    if not Is_SSE_Supported() then begin
-      SuppressibleMsgBox(CustomMessage('msg_simd_sse'), mbCriticalError, MB_OK, MB_OK);
       Result := False;
     end;
 #endif

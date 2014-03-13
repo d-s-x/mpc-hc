@@ -38,9 +38,7 @@ en.comp_mpciconlib=Icon Library
 en.comp_mpcresources=Translations
 en.msg_DeleteSettings=Do you also want to delete MPC-HC settings?%n%nIf you plan on installing MPC-HC again then you do not have to delete them.
 en.msg_SetupIsRunningWarning=MPC-HC setup is already running!
-#if defined(sse_required)
-en.msg_simd_sse=This build of MPC-HC requires a CPU with SSE extension support.%n%nYour CPU does not have those capabilities.
-#elif defined(sse2_required)
+#if defined(sse2_required)
 en.msg_simd_sse2=This build of MPC-HC requires a CPU with SSE2 extension support.%n%nYour CPU does not have those capabilities.
 #endif
 en.run_DownloadToolbarImages=Visit our Wiki page to download toolbar images

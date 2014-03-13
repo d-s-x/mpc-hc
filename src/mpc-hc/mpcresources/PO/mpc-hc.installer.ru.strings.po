@@ -40,10 +40,6 @@ msgctxt "CustomMessages_msg_SetupIsRunningWarning"
 msgid "MPC-HC setup is already running!"
 msgstr "Программа установки MPC-HC уже запущена!"
 
-msgctxt "CustomMessages_msg_simd_sse"
-msgid "This build of MPC-HC requires a CPU with SSE extension support.\n\nYour CPU does not have those capabilities."
-msgstr "Для этой сборки MPC-HC требуется процессор с поддержкой SSE-инструкций.\n\nВ данном процессоре они не поддерживаются."
-
 msgctxt "CustomMessages_msg_simd_sse2"
 msgid "This build of MPC-HC requires a CPU with SSE2 extension support.\n\nYour CPU does not have those capabilities."
 msgstr "Для этой сборки MPC-HC требуется процессор с поддержкой SSE2-инструкций.\n\nВ данном процессоре они не поддерживаются."
