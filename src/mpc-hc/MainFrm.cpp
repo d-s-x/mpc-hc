@@ -746,6 +746,8 @@ CMainFrame::CMainFrame()
     , m_bDelaySetOutputRect(false)
     , m_bOpeningInAutochangedMonitorMode(false)
     , m_bPausedForAutochangeMonitorMode(false)
+    , m_bPausedForBossMode(false)
+    , m_bLeftFullScreenForBossMode(false)
     , m_wndPlaylistBar(this)
     , m_wndInfoBar(this)
     , m_wndStatsBar(this)
@@ -1070,6 +1072,7 @@ LRESULT CMainFrame::OnNotifyIcon(WPARAM wParam, LPARAM lParam)
             CreateThumbnailToolbar();
             MoveVideoWindow();
             SetForegroundWindow();
+            RestoreState();
             break;
         case WM_LBUTTONDBLCLK:
             PostMessage(WM_COMMAND, ID_FILE_OPENMEDIA);
@@ -1610,6 +1613,11 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
     }
 
     __super::OnSysCommand(nID, lParam);
+
+    if ((nID & 0xFFF0) == SC_RESTORE) {
+        RestoreState();
+        return;
+    }
 }
 
 void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
@@ -1668,6 +1676,19 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
             } placeUnder;
             placeUnder();
         }
+    }
+}
+
+void CMainFrame::RestoreState()
+{
+    if (m_bLeftFullScreenForBossMode && !m_fFullScreen && !IsD3DFullScreenMode()) {
+        m_bLeftFullScreenForBossMode = false;
+        SendMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
+    }
+    OAFilterState fs = GetMediaState();
+    if (m_bPausedForBossMode && (fs == State_Stopped || fs == State_Paused)) {
+        m_bPausedForBossMode = false;
+        SendMessage(WM_COMMAND, ID_PLAY_PLAY);
     }
 }
 
@@ -3501,8 +3522,13 @@ void CMainFrame::OnBossKey()
     AnimationInfo.iMinAnimate = 0;
     ::SystemParametersInfo(SPI_SETANIMATION, sizeof(ANIMATIONINFO), &AnimationInfo, 0);
 
-    SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+    OAFilterState fs = GetMediaState();
+    if (fs == State_Running) {
+        m_bPausedForBossMode = true;
+        SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+    }
     if (m_fFullScreen || IsD3DFullScreenMode()) {
+        m_bLeftFullScreenForBossMode = true;
         SendMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
     }
     SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, -1);
