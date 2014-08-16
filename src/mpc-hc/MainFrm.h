@@ -256,6 +256,8 @@ private:
     void SetVolumeBoost(UINT nAudioBoost);
     void SetBalance(int balance);
 
+    void RestoreState();
+
     // subtitles
 
     CCritSec m_csSubLock;
@@ -428,6 +430,8 @@ protected:
     bool m_bFirstPlay;
     bool m_bOpeningInAutochangedMonitorMode;
     bool m_bPausedForAutochangeMonitorMode;
+    bool m_bPausedForBossMode;
+    bool m_bLeftFullScreenForBossMode;
 
     bool m_fAudioOnly;
     CString m_LastOpenBDPath;
