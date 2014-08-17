@@ -169,6 +169,8 @@ void CPlayerStatusBar::Clear()
 
 void CPlayerStatusBar::SetStatusBitmap(UINT id)
 {
+    return; // disable status bitmap
+
     if (m_bmid == id) {
         return;
     }
@@ -190,6 +192,8 @@ void CPlayerStatusBar::SetStatusBitmap(UINT id)
 
 void CPlayerStatusBar::SetStatusTypeIcon(HICON hIcon)
 {
+    return; // disable type icon
+
     if (m_hIcon == hIcon) {
         return;
     }
