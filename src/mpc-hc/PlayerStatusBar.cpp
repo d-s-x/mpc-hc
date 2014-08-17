@@ -77,7 +77,22 @@ BOOL CPlayerStatusBar::PreCreateWindow(CREATESTRUCT& cs)
 CSize CPlayerStatusBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
     CSize ret = __super::CalcFixedLayout(bStretch, bHorz);
-    ret.cy = std::max<long>(ret.cy, 24);
+    LONG height;
+
+    if (CDC* pDC = GetDC()) {
+        CFont* pOld = pDC->SelectObject(&m_time.GetFont());
+        TEXTMETRIC tm;
+        pDC->GetTextMetrics(&tm);
+        pDC->SelectObject(pOld);
+        ReleaseDC(pDC);
+        height = tm.tmHeight;
+    } else {
+        ASSERT(FALSE);
+    }
+    if (m_bm.m_hObject || m_type.GetIcon()) {
+        height = std::max<long>(height, m_pMainFrame->m_dpi.ScaleY(16));
+    }
+    ret.cy = height + m_pMainFrame->m_dpi.ScaleY(4) * 2;
     return ret;
 }
 
@@ -118,12 +133,14 @@ void CPlayerStatusBar::Relayout()
 
     GetClientRect(r);
 
+    int y = m_pMainFrame->m_dpi.ScaleY(4);
+
     if (m_type.GetIcon()) {
-        r2.SetRect(6, r.top + 4, 6 + m_pMainFrame->m_dpi.ScaleX(16), r.bottom - 4);
+        r2.SetRect(6, r.top + y, 6 + m_pMainFrame->m_dpi.ScaleX(16), r.bottom - y);
         m_type.MoveWindow(r2);
     }
 
-    r.DeflateRect(11 + m_pMainFrame->m_dpi.ScaleX(16), 5, bm.bmWidth + 8, 4);
+    r.DeflateRect((bm.bmWidth ? 11 + m_pMainFrame->m_dpi.ScaleX(16) : 8), y, bm.bmWidth + 8, y);
 
     if (CDC* pDC = m_time.GetDC()) {
         CFont* pOld = pDC->SelectObject(&m_time.GetFont());
