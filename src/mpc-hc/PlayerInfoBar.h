@@ -38,6 +38,8 @@ private:
     CAutoPtrArray<CStatusLabel> m_label;
     CAutoPtrArray<CStatusLabel> m_info;
 
+    LONG m_lLineHeight;
+
     CToolTipCtrl m_tooltip;
 
     void Relayout();

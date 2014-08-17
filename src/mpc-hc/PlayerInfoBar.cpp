@@ -30,6 +30,7 @@
 IMPLEMENT_DYNAMIC(CPlayerInfoBar, CDialogBar)
 CPlayerInfoBar::CPlayerInfoBar(CMainFrame* pMainFrame)
     : m_pMainFrame(pMainFrame)
+    , m_lLineHeight(pMainFrame->m_dpi.ScaleY(17))
 {
 }
 
@@ -138,8 +139,20 @@ CSize CPlayerInfoBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
     CRect r;
     GetParent()->GetClientRect(&r);
-    r.bottom = r.top + (LONG)m_label.GetCount() * m_pMainFrame->m_dpi.ScaleY(17) +
-               (m_label.GetCount() ? m_pMainFrame->m_dpi.ScaleY(2) * 2 : 0);
+
+    size_t count = m_label.GetCount();
+    if (count) {
+        CDC* pDC = m_label[0]->GetDC();
+        CFont* pOld = pDC->SelectObject(&m_label[0]->GetFont());
+        TEXTMETRIC tm;
+        pDC->GetTextMetrics(&tm);
+        m_lLineHeight = tm.tmHeight + m_pMainFrame->m_dpi.ScaleY(4);
+        pDC->SelectObject(pOld);
+        m_label[0]->ReleaseDC(pDC);
+    }
+
+    r.bottom = r.top + (LONG)count * m_lLineHeight +
+               (count ? m_pMainFrame->m_dpi.ScaleY(2) * 2 : 0);
     return r.Size();
 }
 
@@ -149,14 +162,16 @@ void CPlayerInfoBar::Relayout()
     GetParent()->GetClientRect(&r);
 
     int w = m_pMainFrame->m_dpi.ScaleX(100);
-    const int h = m_pMainFrame->m_dpi.ScaleY(17);
+    const int h = m_lLineHeight;
     int y = m_pMainFrame->m_dpi.ScaleY(2);
 
     for (size_t i = 0; i < m_label.GetCount(); i++) {
         CDC* pDC = m_label[i]->GetDC();
+        CFont* pOld = pDC->SelectObject(&m_label[i]->GetFont());
         CString str;
         m_label[i]->GetWindowText(str);
         w = max<int>(w, pDC->GetTextExtent(str).cx);
+        pDC->SelectObject(pOld);
         m_label[i]->ReleaseDC(pDC);
     }
 
