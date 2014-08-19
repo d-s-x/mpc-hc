@@ -1610,6 +1610,14 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
     } else if ((nID & 0xFFF0) == SC_MINIMIZE && m_bTrayIcon) {
         ShowWindow(SW_HIDE);
         return;
+    } else if ((nID & 0xFFF0) == SC_MAXIMIZE) {
+        bool bCtrl = GetKeyState(VK_CONTROL) < 0;
+        if (!bCtrl) {
+            if (!m_fFullScreen && !IsD3DFullScreenMode()) {
+                SendMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
+            }
+            return;
+        }
     }
 
     __super::OnSysCommand(nID, lParam);
