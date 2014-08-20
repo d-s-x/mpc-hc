@@ -4190,6 +4190,8 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
                 s.rtStart = 0;
             }
         }
+    } else if (s.nCLSwitches & (CLSW_OPEN | CLSW_PLAY)) {
+        OpenCurPlaylistItem();
     } else {
         s.nCLSwitches = CLSW_NONE;
     }
