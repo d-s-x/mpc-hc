@@ -25,6 +25,7 @@
 
 #include "ChildView.h"
 #include "DebugShadersDlg.h"
+#include "PlayerTitleBar.h"
 #include "PlayerSeekBar.h"
 #include "PlayerToolBar.h"
 #include "PlayerInfoBar.h"
@@ -426,6 +427,7 @@ public:
     bool IsD3DFullScreenMode() const;
 
     CControlBar* m_pLastBar;
+    CControlBar* m_pLastTitlebar;
 
 protected:
     bool m_bFirstPlay;
@@ -580,6 +582,8 @@ protected:  // control bar embedded members
     friend class CPlayerBar; // it notifies m_controls of panel re-dock
 
     CChildView m_wndView;
+
+    CPlayerTitleBar m_wndTitleBar;
 
     CPlayerSeekBar m_wndSeekBar;
     CPlayerToolBar m_wndToolBar;

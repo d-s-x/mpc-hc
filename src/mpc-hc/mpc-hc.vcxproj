@@ -370,6 +370,7 @@
     <ClCompile Include="PlayerSeekBar.cpp" />
     <ClCompile Include="PlayerStatusBar.cpp" />
     <ClCompile Include="PlayerSubresyncBar.cpp" />
+    <ClCompile Include="PlayerTitleBar.cpp" />
     <ClCompile Include="PlayerToolBar.cpp" />
     <ClCompile Include="Playlist.cpp" />
     <ClCompile Include="PnSPresetsDlg.cpp" />
@@ -503,6 +504,7 @@
     <ClInclude Include="PlayerSeekBar.h" />
     <ClInclude Include="PlayerStatusBar.h" />
     <ClInclude Include="PlayerSubresyncBar.h" />
+    <ClInclude Include="PlayerTitleBar.h" />
     <ClInclude Include="PlayerToolBar.h" />
     <ClInclude Include="Playlist.h" />
     <ClInclude Include="PnSPresetsDlg.h" />

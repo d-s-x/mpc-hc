@@ -47,6 +47,13 @@ enum {
     CS_LAST = CS_STATUSBAR
 };
 
+// flags for CAppSettings::nCSt
+enum {
+    CST_NONE = 0,
+    CST_TITLEBAR = 1,
+    CST_LAST = CST_TITLEBAR
+};
+
 enum : UINT64 {
     CLSW_NONE = 0,
     CLSW_OPEN = 1,
@@ -619,7 +626,8 @@ public:
     // View
     MpcCaptionState eCaptionMenuMode;
     bool            fHideNavigation;
-    UINT            nCS; // Control state for toolbars
+    UINT            nCS; // Control state for toolbars (bottom)
+    UINT            nCSt;// Control state for title toolbars (top)
     // Language
     LANGID          language;
     // Subtitles menu

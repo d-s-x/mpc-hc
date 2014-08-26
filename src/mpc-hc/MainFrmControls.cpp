@@ -26,11 +26,13 @@
 
 CMainFrameControls::ControlsVisibilityState::ControlsVisibilityState()
     : nVisibleCS(0)
+    , nVisibleCSt(0)
     , bLastCanAutoHideToolbars(false)
     , bLastCanAutoHidePanels(false)
     , bLastHaveExclusiveSeekbar(false)
 {
     nCurrentCS = AfxGetAppSettings().nCS;
+    nCurrentCSt = AfxGetAppSettings().nCSt;
 }
 
 UINT CMainFrameControls::GetEffectiveToolbarsSelection()
@@ -40,6 +42,16 @@ UINT CMainFrameControls::GetEffectiveToolbarsSelection()
     if (m_pMainFrame->GetPlaybackMode() == PM_DIGITAL_CAPTURE
             || m_pMainFrame->GetPlaybackMode() == PM_ANALOG_CAPTURE) {
         ret &= ~CS_SEEKBAR;
+    }
+    return ret;
+}
+
+UINT CMainFrameControls::GetEffectiveTitlebarsSelection()
+{
+    const auto& s = AfxGetAppSettings();
+    UINT ret = s.nCSt;
+    if (!m_pMainFrame->m_fFullScreen && !m_pMainFrame->IsD3DFullScreenMode()) {
+        ret &= ~CST_TITLEBAR;
     }
     return ret;
 }
@@ -67,6 +79,29 @@ bool CMainFrameControls::ShowToolbarsSelection()
     return bRecalcLayout;
 }
 
+bool CMainFrameControls::ShowTitlebarsSelection()
+{
+    auto& st = m_controlsVisibilityState;
+    const auto newCSt = GetEffectiveTitlebarsSelection();
+    bool bRecalcLayout = false;
+    if (!InFullscreenWithPermahiddenToolbars()) {
+        const bool bResize = (newCSt != st.nCurrentCSt && !ToolbarsCoverVideo() && !m_pMainFrame->IsZoomed());
+        if (bResize) {
+            CRect newRect;
+            m_pMainFrame->GetWindowRect(newRect);
+            newRect.top += GetTitlebarsHeight(st.nCurrentCSt);
+            bRecalcLayout = ShowTitlebars(newCSt);
+            st.nCurrentCSt = newCSt; // some toolbars' height may depend on ControlChecked()
+            newRect.top -= GetTitlebarsHeight(st.nCurrentCSt);
+            m_pMainFrame->MoveWindow(newRect);
+        } else {
+            bRecalcLayout = ShowTitlebars(newCSt);
+        }
+    }
+    st.nCurrentCSt = newCSt;
+    return bRecalcLayout;
+}
+
 bool CMainFrameControls::ShowToolbars(UINT nCS)
 {
     bool bRecalcLayout = false;
@@ -90,6 +125,29 @@ bool CMainFrameControls::ShowToolbars(UINT nCS)
     return bRecalcLayout;
 }
 
+bool CMainFrameControls::ShowTitlebars(UINT nCSt)
+{
+    bool bRecalcLayout = false;
+    auto& st = m_controlsVisibilityState;
+    if (nCSt != st.nVisibleCSt) {
+        m_pMainFrame->m_pLastTitlebar = nullptr;
+        int i = 1;
+        for (const auto& pair : m_titlebars) {
+            auto& pCB = pair.second;
+            if (nCSt & i) {
+                m_pMainFrame->ShowControlBar(pCB, TRUE, TRUE);
+                m_pMainFrame->m_pLastTitlebar = pCB;
+            } else {
+                m_pMainFrame->ShowControlBar(pCB, FALSE, TRUE);
+            }
+            i <<= 1;
+        }
+        st.nVisibleCSt = nCSt;
+        bRecalcLayout = true;
+    }
+    return bRecalcLayout;
+}
+
 unsigned CMainFrameControls::GetToolbarsHeight(UINT nCS) const
 {
     unsigned ret = 0;
@@ -97,6 +155,20 @@ unsigned CMainFrameControls::GetToolbarsHeight(UINT nCS) const
     for (const auto& pair : m_toolbars) {
         auto& pCB = pair.second;
         if ((nCS & i) && IsWindow(pCB->m_hWnd)) {
+            ret += pCB->CalcFixedLayout(TRUE, TRUE).cy;
+        }
+        i <<= 1;
+    }
+    return ret;
+}
+
+unsigned CMainFrameControls::GetTitlebarsHeight(UINT nCSt) const
+{
+    unsigned ret = 0;
+    int i = 1;
+    for (const auto& pair : m_titlebars) {
+        auto& pCB = pair.second;
+        if ((nCSt & i) && IsWindow(pCB->m_hWnd)) {
             ret += pCB->CalcFixedLayout(TRUE, TRUE).cy;
         }
         i <<= 1;
@@ -146,6 +218,13 @@ bool CMainFrameControls::ControlChecked(Toolbar toolbar)
     return !!(st.nCurrentCS & (1 << nID));
 }
 
+bool CMainFrameControls::ControlChecked(Titlebar toolbar)
+{
+    const auto& st = m_controlsVisibilityState;
+    const auto nID = static_cast<UINT>(toolbar);
+    return !!(st.nCurrentCSt & (1 << nID));
+}
+
 bool CMainFrameControls::ControlChecked(Panel panel)
 {
     auto pBar = m_panels[panel];
@@ -160,6 +239,16 @@ void CMainFrameControls::ToggleControl(Toolbar toolbar)
     auto nCS = s.nCS | st.nCurrentCS;
     nCS ^= (1 << nID);
     SetToolbarsSelection(nCS, true);
+}
+
+void CMainFrameControls::ToggleControl(Titlebar toolbar)
+{
+    const auto& s = AfxGetAppSettings();
+    const auto& st = m_controlsVisibilityState;
+    const auto nID = static_cast<UINT>(toolbar);
+    auto nCSt = s.nCSt | st.nCurrentCSt;
+    nCSt ^= (1 << nID);
+    SetTitlebarsSelection(nCSt, true);
 }
 
 void CMainFrameControls::ToggleControl(Panel panel)
@@ -190,6 +279,18 @@ void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = fals
     }
     AfxGetAppSettings().nCS = nCS;
     if (ShowToolbarsSelection()) {
+        m_pMainFrame->RecalcLayout();
+    }
+}
+
+void CMainFrameControls::SetTitlebarsSelection(UINT nCSt, bool bDelayHide/* = false*/)
+{
+    DelayShowNotLoaded(false);
+    if (bDelayHide) {
+        LockHideZone(DOCK_TOP);
+    }
+    AfxGetAppSettings().nCSt = nCSt;
+    if (ShowTitlebarsSelection()) {
         m_pMainFrame->RecalcLayout();
     }
 }
@@ -274,10 +375,12 @@ CSize CMainFrameControls::GetDockZonesMinSize(unsigned uSaneFallback)
     ret.cx = max(sizeLeft.cx + sizeRight.cx, max(sizeTop.cx, sizeBottom.cx));
     ret.cy = sizeTop.cy + sizeBottom.cy + max(sizeLeft.cy, sizeRight.cy);
     const unsigned uToolbars = GetToolbarsHeight();
-    if (uToolbars) {
+    const unsigned uTitlebars = GetTitlebarsHeight();
+    if (uToolbars || uTitlebars) {
         ret.cx = std::max(ret.cx, saneX);
     }
     ret.cy += uToolbars;
+    ret.cy += uTitlebars;
 
     return ret;
 }
@@ -372,6 +475,9 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                             }
                             for (const auto& pair : m_toolbars) {
                                 targetParents.emplace(std::make_pair(pair.second->m_hWnd, DOCK_BOTTOM));
+                            }
+                            for (const auto& pair : m_titlebars) {
+                                targetParents.emplace(std::make_pair(pair.second->m_hWnd, DOCK_TOP));
                             }
                             while (hWnd && hWnd != m_pMainFrame->m_hWnd) {
                                 auto it = targetParents.find(hWnd);
@@ -498,7 +604,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
         auto delayedAutohideZone = [&](DockZone zone) {
             ASSERT(zone != DOCK_NONE);
             if (!(zone & mask.maskHide) && !(zone & mask.maskShow)) {
-                if ((zone == DOCK_BOTTOM || (bCanHideDockedPanels && m_panelZones.find(zone) != m_panelZones.end())) &&
+                if ((zone == DOCK_TOP || zone == DOCK_BOTTOM || (bCanHideDockedPanels && m_panelZones.find(zone) != m_panelZones.end())) &&
                         m_zoneHideTicks.find(zone) == m_zoneHideTicks.end() &&
                         m_zoneHideLocks.find(zone) == m_zoneHideLocks.end()) {
                     ASSERT(uTimeout > 0);
@@ -513,6 +619,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
             delayedAutohideZone(DOCK_RIGHT);
         } else if (!st.bLastCanAutoHideToolbars && bCanAutoHide) {
             delayedAutohideZone(DOCK_BOTTOM);
+            delayedAutohideZone(DOCK_TOP);
         }
         if (!bCanAutoHide && (st.bLastCanAutoHideToolbars || st.bLastCanAutoHidePanels)) {
             m_zoneHideTicks.clear();
@@ -536,6 +643,11 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                 bool bSetTick = false;
                 if (zone == DOCK_BOTTOM) {
                     if (ShowToolbarsSelection()) {
+                        bRecalcLayout = true;
+                    }
+                    bSetTick = true;
+                } else if (zone == DOCK_TOP) {
+                    if (ShowTitlebarsSelection()) {
                         bRecalcLayout = true;
                     }
                     bSetTick = true;
@@ -624,6 +736,10 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     if (ShowToolbars(CS_NONE)) {
                         bRecalcLayout = true;
                     }
+                } else if (zone == DOCK_TOP) {
+                    if (ShowTitlebars(CST_NONE)) {
+                        bRecalcLayout = true;
+                    }
                 }
                 m_zoneHideTicks.erase(zone);
                 m_zoneHideLocks.erase(zone);
@@ -660,6 +776,16 @@ unsigned CMainFrameControls::GetVisibleToolbarsHeight() const
 unsigned CMainFrameControls::GetToolbarsHeight() const
 {
     return GetToolbarsHeight(m_controlsVisibilityState.nCurrentCS);
+}
+
+unsigned CMainFrameControls::GetVisibleTitlebarsHeight() const
+{
+    return GetTitlebarsHeight(m_controlsVisibilityState.nVisibleCSt);
+}
+
+unsigned CMainFrameControls::GetTitlebarsHeight() const
+{
+    return GetTitlebarsHeight(m_controlsVisibilityState.nCurrentCSt);
 }
 
 void CMainFrameControls::DelayShowNotLoaded(bool bDoDelay)
@@ -725,6 +851,7 @@ void CMainFrameControls::EnumPanelZones()
     }
 
     m_controlsVisibilityState.nCurrentCS = GetEffectiveToolbarsSelection();
+    m_controlsVisibilityState.nCurrentCSt = GetEffectiveTitlebarsSelection();
 }
 
 void CMainFrameControls::GetDockZonesInternal(unsigned& uTop, unsigned& uLeft, unsigned& uRight, unsigned& uBottom, bool bDoEnum, bool bOnlyVisible)
@@ -763,7 +890,9 @@ void CMainFrameControls::GetDockZonesInternal(unsigned& uTop, unsigned& uLeft, u
     uRight = (m_panelZones.find(DOCK_RIGHT) != std::end(m_panelZones)) ? calcDock(DOCK_RIGHT) : 0;
     uBottom = (m_panelZones.find(DOCK_BOTTOM) != std::end(m_panelZones)) ? calcDock(DOCK_BOTTOM) : 0;
 
+    unsigned uTitlebars = bOnlyVisible ? GetVisibleTitlebarsHeight() : GetTitlebarsHeight();
     unsigned uToolbars = bOnlyVisible ? GetVisibleToolbarsHeight() : GetToolbarsHeight();
+    uTop += uTitlebars;
     uBottom += uToolbars;
 }
 

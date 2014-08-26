@@ -690,6 +690,7 @@ CMainFrame::CMainFrame()
     , m_fFullScreen(false)
     , m_fFirstFSAfterLaunchOnFS(false)
     , m_pLastBar(nullptr)
+    , m_pLastTitlebar(nullptr)
     , m_nLoops(0)
     , m_nLastSkipDirection(0)
     , m_posFirstExtSub(nullptr)
@@ -750,6 +751,7 @@ CMainFrame::CMainFrame()
     , m_wndInfoBar(this)
     , m_wndStatsBar(this)
     , m_wndStatusBar(this)
+    , m_wndTitleBar(this)
     , m_bAltDownClean(false)
     , m_nJumpToSubMenusCount(0)
     , m_nVolumeBeforeFrameStepping(0)
@@ -843,6 +845,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
     if (bResult) {
         bResult = m_wndSeekBar.Create(this);
     }
+    if (bResult) {
+        bResult = m_wndTitleBar.Create(this);
+    }
     if (!bResult) {
         TRACE(_T("Failed to create all control bars\n"));
         return -1;      // fail to create
@@ -855,6 +860,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
     m_controls.m_toolbars[CMainFrameControls::Toolbar::INFO] = &m_wndInfoBar;
     m_controls.m_toolbars[CMainFrameControls::Toolbar::STATS] = &m_wndStatsBar;
     m_controls.m_toolbars[CMainFrameControls::Toolbar::STATUS] = &m_wndStatusBar;
+
+    m_controls.m_titlebars[CMainFrameControls::Titlebar::TITLE] = &m_wndTitleBar;
 
     // dockable bars
 
@@ -891,6 +898,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
     // Hide all controls initially
     for (const auto& pair : m_controls.m_toolbars) {
+        pair.second->ShowWindow(SW_HIDE);
+    }
+    for (const auto& pair : m_controls.m_titlebars) {
         pair.second->ShowWindow(SW_HIDE);
     }
     for (const auto& pair : m_controls.m_panels) {
@@ -1273,6 +1283,12 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
         }
     }
 
+    for (const auto& pair : m_controls.m_titlebars) {
+        if (pair.second->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
+            return TRUE;
+        }
+    }
+
     for (const auto& pair : m_controls.m_panels) {
         if (pair.second->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
             return TRUE;
@@ -1465,11 +1481,13 @@ void CMainFrame::OnSizing(UINT nSide, LPRECT lpRect)
         unsigned uTop, uLeft, uRight, uBottom;
         m_controls.GetVisibleDockZones(uTop, uLeft, uRight, uBottom);
         if (!bToolbarsOnVideo) {
+            uTop -= m_controls.GetVisibleTitlebarsHeight();
             uBottom -= m_controls.GetVisibleToolbarsHeight();
         }
         controlsSize.cx -= uLeft + uRight;
         controlsSize.cy -= uTop + uBottom;
     } else if (bToolbarsOnVideo) {
+        controlsSize.cy -= m_controls.GetVisibleTitlebarsHeight();
         controlsSize.cy -= m_controls.GetVisibleToolbarsHeight();
     }
 
@@ -6427,6 +6445,7 @@ void CMainFrame::OnViewMinimal()
 {
     SetCaptionState(MODE_BORDERLESS);
     m_controls.SetToolbarsSelection(CS_NONE, true);
+    m_controls.SetTitlebarsSelection(CST_NONE, true);
 }
 
 void CMainFrame::OnUpdateViewMinimal(CCmdUI* pCmdUI)
@@ -6437,6 +6456,7 @@ void CMainFrame::OnViewCompact()
 {
     SetCaptionState(MODE_FRAMEONLY);
     m_controls.SetToolbarsSelection(CS_SEEKBAR, true);
+    m_controls.SetTitlebarsSelection(CST_TITLEBAR, true);
 }
 
 void CMainFrame::OnUpdateViewCompact(CCmdUI* pCmdUI)
@@ -6447,6 +6467,7 @@ void CMainFrame::OnViewNormal()
 {
     SetCaptionState(MODE_SHOWCAPTIONMENU);
     m_controls.SetToolbarsSelection(CS_SEEKBAR | CS_TOOLBAR | CS_STATUSBAR | CS_INFOBAR, true);
+    m_controls.SetTitlebarsSelection(CST_TITLEBAR, true);
 }
 
 void CMainFrame::OnUpdateViewNormal(CCmdUI* pCmdUI)
@@ -9649,10 +9670,12 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
             unsigned uTop, uLeft, uRight, uBottom;
             m_controls.GetVisibleDockZones(uTop, uLeft, uRight, uBottom);
             if (!bToolbarsOnVideo) {
+                uTop -= m_controls.GetVisibleTitlebarsHeight();
                 uBottom -= m_controls.GetVisibleToolbarsHeight();
             }
             windowRect.InflateRect(uLeft, uTop, uRight, uBottom);
         } else if (bToolbarsOnVideo) {
+            windowRect.bottom += m_controls.GetVisibleTitlebarsHeight();
             windowRect.bottom += m_controls.GetVisibleToolbarsHeight();
         }
 
@@ -9836,11 +9859,13 @@ CSize CMainFrame::GetZoomWindowSize(double dScale)
             unsigned uTop, uLeft, uRight, uBottom;
             m_controls.GetDockZones(uTop, uLeft, uRight, uBottom);
             if (bToolbarsOnVideo) {
+                uTop -= m_controls.GetTitlebarsHeight();
                 uBottom -= m_controls.GetToolbarsHeight();
             }
             clientTargetSize.cx += uLeft + uRight;
             clientTargetSize.cy += uTop + uBottom;
         } else if (!bToolbarsOnVideo) {
+            clientTargetSize.cy += m_controls.GetTitlebarsHeight();
             clientTargetSize.cy += m_controls.GetToolbarsHeight();
         }
 
@@ -10005,11 +10030,13 @@ double CMainFrame::GetZoomAutoFitScale(bool bLargerOnly)
         unsigned uTop, uLeft, uRight, uBottom;
         m_controls.GetDockZones(uTop, uLeft, uRight, uBottom);
         if (bToolbarsOnVideo) {
+            uTop -= m_controls.GetVisibleTitlebarsHeight();
             uBottom -= m_controls.GetVisibleToolbarsHeight();
         }
         decorationsSize.cx += uLeft + uRight;
         decorationsSize.cy += uTop + uBottom;
     } else if (!bToolbarsOnVideo) {
+        decorationsSize.cy -= m_controls.GetVisibleTitlebarsHeight();
         decorationsSize.cy -= m_controls.GetVisibleToolbarsHeight();
     }
 
@@ -11296,6 +11323,7 @@ void CMainFrame::OpenSetupWindowTitle(bool reset /*= false*/)
 
     SetWindowText(title);
     m_Lcd.SetMediaTitle(title);
+    m_wndTitleBar.SetMediaTitle(title);
 }
 
 // Called from GraphThread

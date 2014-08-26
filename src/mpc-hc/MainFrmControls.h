@@ -35,6 +35,8 @@ class CMainFrameControls
     struct ControlsVisibilityState {
         UINT nVisibleCS;
         UINT nCurrentCS;
+        UINT nVisibleCSt;
+        UINT nCurrentCSt;
         CPoint lastShowPoint;
         bool bLastCanAutoHideToolbars;
         bool bLastCanAutoHidePanels;
@@ -46,6 +48,11 @@ class CMainFrameControls
     bool ShowToolbarsSelection();
     bool ShowToolbars(UINT nCS);
     unsigned GetToolbarsHeight(UINT nCS) const;
+
+    UINT GetEffectiveTitlebarsSelection();
+    bool ShowTitlebarsSelection();
+    bool ShowTitlebars(UINT nCSt);
+    unsigned GetTitlebarsHeight(UINT nCSt) const;
 
     bool m_bDelayShowNotLoaded;
     void DelayShowNotLoadedCallback();
@@ -67,6 +74,12 @@ public:
     };
     std::map<Toolbar, CControlBar*> m_toolbars;
 
+    enum class Titlebar
+    {
+        TITLE,
+    };
+    std::map<Titlebar, CControlBar*> m_titlebars;
+
     enum class Panel
     {
         SUBRESYNC,
@@ -78,10 +91,13 @@ public:
     std::map<Panel, CPlayerBar*> m_panels;
 
     bool ControlChecked(Toolbar toolbar);
+    bool ControlChecked(Titlebar toolbar);
     bool ControlChecked(Panel panel);
     void ToggleControl(Toolbar toolbar);
+    void ToggleControl(Titlebar toolbar);
     void ToggleControl(Panel panel);
     void SetToolbarsSelection(UINT nCS, bool bDelayHide = false);
+    void SetTitlebarsSelection(UINT nCSt, bool bDelayHide = false);
 
     void LoadState();
     void SaveState();
@@ -94,8 +110,12 @@ public:
     bool ToolbarsCoverVideo() const;
 
     void UpdateToolbarsVisibility();
+
     unsigned GetVisibleToolbarsHeight() const;
     unsigned GetToolbarsHeight() const;
+
+    unsigned GetVisibleTitlebarsHeight() const;
+    unsigned GetTitlebarsHeight() const;
 
     void DelayShowNotLoaded(bool bDoDelay);
     bool DelayShowNotLoaded() const;
